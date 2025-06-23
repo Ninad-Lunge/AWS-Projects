@@ -14,7 +14,7 @@
 ## 2. Create Required AWS Resources
 
 ### 2.1 Create VPC Security Groups
-bash
+```
 # Create security group for DocumentDB
 aws ec2 create-security-group \
   --group-name documentdb-sg \
@@ -22,7 +22,9 @@ aws ec2 create-security-group \
   --vpc-id <your-vpc-id> \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Create security group for DMS
 aws ec2 create-security-group \
   --group-name dms-sg \
@@ -30,7 +32,9 @@ aws ec2 create-security-group \
   --vpc-id <your-vpc-id> \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Add inbound rule to DocumentDB security group to allow traffic from DMS security group
 aws ec2 authorize-security-group-ingress \
   --group-id <documentdb-sg-id> \
@@ -39,7 +43,9 @@ aws ec2 authorize-security-group-ingress \
   --source-group <dms-sg-id> \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Add outbound rule to DMS security group (allow all outbound traffic)
 aws ec2 authorize-security-group-egress \
   --group-id <dms-sg-id> \
@@ -48,10 +54,11 @@ aws ec2 authorize-security-group-egress \
   --cidr 0.0.0.0/0 \
   --profile <your-profile> \
   --region <your-region>
+```
 
 
 ### 2.2 Create Subnet Groups
-bash
+```
 # Create subnet group for DocumentDB
 aws docdb create-db-subnet-group \
   --db-subnet-group-name documentdb-subnet-group \
@@ -59,7 +66,9 @@ aws docdb create-db-subnet-group \
   --subnet-ids <subnet-id-1> <subnet-id-2> <subnet-id-3> \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Create subnet group for DMS (using the same subnets as DocumentDB)
 aws dms create-replication-subnet-group \
   --replication-subnet-group-identifier dms-subnet-group \
@@ -67,10 +76,10 @@ aws dms create-replication-subnet-group \
   --subnet-ids <subnet-id-1> <subnet-id-2> <subnet-id-3> \
   --profile <your-profile> \
   --region <your-region>
-
+```
 
 ### 2.3 Create DocumentDB Cluster
-bash
+```
 # Create parameter group for DocumentDB
 aws docdb create-db-cluster-parameter-group \
   --db-cluster-parameter-group-name docdb-param-group \
@@ -78,14 +87,18 @@ aws docdb create-db-cluster-parameter-group \
   --description "Parameter group for DocumentDB" \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Modify parameter group to disable TLS (if needed)
 aws docdb modify-db-cluster-parameter-group \
   --db-cluster-parameter-group-name docdb-param-group \
   --parameters "ParameterName=tls,ParameterValue=disabled,ApplyMethod=pending-reboot" \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Create DocumentDB cluster
 aws docdb create-db-cluster \
   --db-cluster-identifier <your-docdb-cluster-name> \
@@ -97,7 +110,9 @@ aws docdb create-db-cluster \
   --db-cluster-parameter-group-name docdb-param-group \
   --profile <your-profile> \
   --region <your-region>
+```
 
+```
 # Create DocumentDB instance
 aws docdb create-db-instance \
   --db-instance-identifier <your-docdb-instance-name> \
@@ -106,12 +121,13 @@ aws docdb create-db-instance \
   --db-cluster-identifier <your-docdb-cluster-name> \
   --profile <your-profile> \
   --region <your-region>
+```
 
 
 ## 3. Set Up DMS Endpoints
 
 ### 3.1 Create MongoDB Atlas Source Endpoint
-bash
+```
 aws dms create-endpoint \
   --endpoint-identifier mongodb-atlas-source-ep \
   --endpoint-type source \
@@ -123,10 +139,11 @@ aws dms create-endpoint \
   --mongodb-settings "AuthType=PASSWORD,AuthMechanism=SCRAM-SHA-1,AuthSource=admin,NestingLevel=NONE,ExtractDocId=false" \
   --profile <your-profile> \
   --region <your-region>
+```
 
 
 ### 3.2 Create DocumentDB Target Endpoint
-bash
+```
 aws dms create-endpoint \
   --endpoint-identifier documentdb-target-ep \
   --endpoint-type target \
@@ -137,12 +154,12 @@ aws dms create-endpoint \
   --port 27017 \
   --profile <your-profile> \
   --region <your-region>
-
+```
 
 ## 4. Set Up DMS Serverless Replication
 
 ### 4.1 Create DMS Replication Configuration
-bash
+```
 aws dms create-replication-config \
   --replication-config-identifier <your-replication-name> \
   --source-endpoint-arn <mongodb-source-endpoint-arn> \
@@ -152,33 +169,36 @@ aws dms create-replication-config \
   --table-mappings '{"rules":[{"rule-id":"1","rule-name":"1","rule-type":"selection","rule-action":"include","object-locator":{"schema-name":"%","table-name":"%"},"filters":[]}]}' \
   --profile <your-profile> \
   --region <your-region>
+```
 
 
 ### 4.2 Start DMS Replication
-bash
+```
 aws dms start-replication \
   --replication-config-arn <replication-config-arn> \
   --start-replication-type reload-target \
   --profile <your-profile> \
   --region <your-region>
-
+```
 
 ## 5. Monitor Replication Progress
 
 ### 5.1 Check Replication Status
-bash
+```
 aws dms describe-replications \
   --filters Name=replication-config-arn,Values=<replication-config-arn> \
   --profile <your-profile> \
   --region <your-region>
+```
 
 
 ### 5.2 Check Table Statistics
-bash
+```
 aws dms describe-table-statistics \
   --replication-config-arn <replication-config-arn> \
   --profile <your-profile> \
   --region <your-region>
+```
 
 
 ## 6. Troubleshooting Common Issues
@@ -192,7 +212,7 @@ aws dms describe-table-statistics \
 ### 6.2 TLS/SSL Issues
 • **TLS Configuration**: If DocumentDB has TLS enabled, but DMS endpoint doesn't use SSL:
 
-bash
+```
   # Disable TLS on DocumentDB (temporary solution)
   aws docdb create-db-cluster-parameter-group \
     --db-cluster-parameter-group-name docdb-no-tls \
@@ -200,37 +220,40 @@ bash
     --description "DocumentDB parameter group with TLS disabled" \
     --profile <your-profile> \
     --region <your-region>
-
+```
+```
   aws docdb modify-db-cluster-parameter-group \
     --db-cluster-parameter-group-name docdb-no-tls \
     --parameters "ParameterName=tls,ParameterValue=disabled,ApplyMethod=pending-reboot" \
     --profile <your-profile> \
     --region <your-region>
-
+```
+```
   aws docdb modify-db-cluster \
     --db-cluster-identifier <your-docdb-cluster-name> \
     --db-cluster-parameter-group-name docdb-no-tls \
     --apply-immediately \
     --profile <your-profile> \
     --region <your-region>
-
+```
+```
   # Reboot the primary instance to apply changes
   aws docdb reboot-db-instance \
     --db-instance-identifier <primary-instance-id> \
     --profile <your-profile> \
     --region <your-region>
-
+```
 
 
 • **Configure SSL on DMS endpoint**:
 
-bash
+```
   aws dms modify-endpoint \
     --endpoint-arn <documentdb-target-endpoint-arn> \
     --extra-connection-attributes "ssl=true" \
     --profile <your-profile> \
     --region <your-region>
-
+```
 
 
 ### 6.3 Authentication Issues
